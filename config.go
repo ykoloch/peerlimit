@@ -6,8 +6,8 @@ import (
 )
 
 type TokenBucket struct {
-	RefillRate int
-	Burst      int
+	RefillRate float64
+	Burst      float64
 }
 
 type Config struct {
