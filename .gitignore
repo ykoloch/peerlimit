@@ -1,0 +1,38 @@
+# Ignore binary executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Ignore build directories
+/bin/
+/obj/
+/out/
+
+# Go workspace directories
+/vendor/
+
+# Ignore IDE/editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Test coverage reports
+coverage.out
+
+# Go-specific files
+*.out
+*.log
+
+# go-sec report
+*.sarif
+notes.txt
+
+CLAUDE.md
+
