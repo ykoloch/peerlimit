@@ -2,6 +2,7 @@ package peerlimit
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -131,6 +132,32 @@ func TestAllow_RaceSingleKey(t *testing.T) {
 		wg.Go(func() {
 			for range 100 {
 				l.Allow(context.TODO(), userID)
+			}
+		})
+	}
+	wg.Wait()
+}
+
+func TestAllow_RaceMultKey(t *testing.T) {
+	config := Config{
+		Bucket: TokenBucket{
+			RefillRate: 5,
+			Burst:      burst,
+		},
+		Discovery:    struct{}{},
+		SyncInterval: 1,
+	}
+	l, err := New(config)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	workers := 100
+	var wg sync.WaitGroup
+	for i := range workers {
+		wg.Go(func() {
+			for range 100 {
+				l.Allow(context.TODO(), strconv.Itoa(i))
 			}
 		})
 	}
