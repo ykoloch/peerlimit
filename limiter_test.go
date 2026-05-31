@@ -2,6 +2,7 @@ package peerlimit
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 )
@@ -108,4 +109,28 @@ func TestAllow_BucketsIsolated(t *testing.T) {
 	if !l.Allow(context.TODO(), user2ID) {
 		t.Error("request for user_2 = false, want true")
 	}
+}
+
+func TestAllow_RaceSingleKey(t *testing.T) {
+	config := Config{
+		Bucket: TokenBucket{
+			RefillRate: 5,
+			Burst:      burst,
+		},
+		Discovery:    struct{}{},
+		SyncInterval: 1,
+	}
+	l, err := New(config)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	workers := 100
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Go(func() {
+			l.Allow(context.TODO(), userID)
+		})
+	}
+	wg.Wait()
 }
