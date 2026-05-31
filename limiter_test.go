@@ -49,6 +49,6 @@ func TestAllow_BurstExhaustion(t *testing.T) {
 		}
 	}
 	if l.Allow(context.TODO(), userID) {
-		t.Error("request above capacity = true, wnat false")
+		t.Error("request above capacity = true, want false")
 	}
 }
