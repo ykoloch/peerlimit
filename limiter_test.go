@@ -129,7 +129,9 @@ func TestAllow_RaceSingleKey(t *testing.T) {
 	var wg sync.WaitGroup
 	for range workers {
 		wg.Go(func() {
-			l.Allow(context.TODO(), userID)
+			for range 100 {
+				l.Allow(context.TODO(), userID)
+			}
 		})
 	}
 	wg.Wait()
