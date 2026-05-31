@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	userID = "user:1"
-	burst  = 50
+	userID  = "user:1"
+	user2ID = "user:2"
+	burst   = 50
 )
 
 func TestAllow_NewKeyPasses(t *testing.T) {
@@ -79,5 +80,32 @@ func TestAllow_Refill(t *testing.T) {
 	time.Sleep(time.Millisecond * 300)
 	if !l.Allow(context.TODO(), userID) {
 		t.Error("request after refill = false, want true")
+	}
+}
+
+func TestAllow_BucketsIsolated(t *testing.T) {
+	config := Config{
+		Bucket: TokenBucket{
+			RefillRate: 5,
+			Burst:      burst,
+		},
+		Discovery:    struct{}{},
+		SyncInterval: 1,
+	}
+	l, err := New(config)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	// exhaust bucket for user_1
+	for range int(l.config.Bucket.Burst) {
+		l.Allow(context.TODO(), userID)
+	}
+	if l.Allow(context.TODO(), userID) {
+		t.Fatal("bucket should be empty after exhaustion")
+	}
+	// fire request from user_2
+	if !l.Allow(context.TODO(), user2ID) {
+		t.Error("request for user_2 = false, want true")
 	}
 }
