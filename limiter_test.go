@@ -3,6 +3,7 @@ package peerlimit
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 const (
@@ -50,5 +51,33 @@ func TestAllow_BurstExhaustion(t *testing.T) {
 	}
 	if l.Allow(context.TODO(), userID) {
 		t.Error("request above capacity = true, want false")
+	}
+}
+
+func TestAllow_Refill(t *testing.T) {
+	config := Config{
+		Bucket: TokenBucket{
+			RefillRate: 5,
+			Burst:      burst,
+		},
+		Discovery:    struct{}{},
+		SyncInterval: 1,
+	}
+	l, err := New(config)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	// exhaust bucket
+	for range int(l.config.Bucket.Burst) {
+		l.Allow(context.TODO(), userID)
+	}
+	if l.Allow(context.TODO(), userID) {
+		t.Fatal("bucket should be empty after exhaustion")
+	}
+	// wait for some tokens to be added
+	time.Sleep(time.Millisecond * 300)
+	if !l.Allow(context.TODO(), userID) {
+		t.Error("request after refill = false, want true")
 	}
 }
