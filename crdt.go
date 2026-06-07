@@ -22,5 +22,3 @@ func (c crdt) merge(input crdt) {
 		c[key].merge(value)
 	}
 }
-
-
