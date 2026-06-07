@@ -67,6 +67,8 @@ var crdtTests = []crdtTest{
 	},
 }
 
+// Mechanics of gCounter.merge: new cells are added and existing cells take the
+// max, so a smaller incoming value never clobbers a larger one.
 func TestMerge_GCounter(t *testing.T) {
 	for _, tt := range gcTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -78,6 +80,8 @@ func TestMerge_GCounter(t *testing.T) {
 	}
 }
 
+// Mechanics of crdt.merge: a new key is created without a nil-map panic, a
+// shared key merges its nested gCounter, and a foreign key leaves own keys intact.
 func TestMerge_CRDT(t *testing.T) {
 	for _, tt := range crdtTests {
 		t.Run(tt.name, func(t *testing.T) {
