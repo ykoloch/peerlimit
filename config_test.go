@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-type test struct {
+type configTest struct {
 	name    string
 	config  Config
 	wantErr bool
 }
 
-var tests = []test{
+var configTests = []configTest{
 	{
 		name: "correct",
 		config: Config{Bucket: TokenBucket{
@@ -78,7 +78,7 @@ var tests = []test{
 }
 
 func TestValidate(t *testing.T) {
-	for _, tt := range tests {
+	for _, tt := range configTests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.validate()
 			result := err != nil
