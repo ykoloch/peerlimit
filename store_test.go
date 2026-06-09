@@ -50,6 +50,13 @@ func TestStore_Race(t *testing.T) {
 			}
 		})
 	}
+
+	for range 10 {
+		wg.Go(func() {
+			s.aggregate(userID)
+		})
+	}
+
 	wg.Wait()
 	if got := s.aggregate(userID); got != float64(workers*100) {
 		t.Fatalf("want %d, got %v\n", workers*100, got)
