@@ -1,6 +1,9 @@
 package peerlimit
 
-import "testing"
+import (
+	"sync"
+	"testing"
+)
 
 func TestStore_Increment(t *testing.T) {
 	s := newStore(Node1)
@@ -33,5 +36,22 @@ func TestStore_Aggregate(t *testing.T) {
 	}
 	if aggr = s.aggregate("user:404"); aggr != 0 {
 		t.Fatalf("aggregate value for non existing key should be 0, got %v\n", aggr)
+	}
+}
+
+func TestStore_Race(t *testing.T) {
+	s := newStore(Node1)
+	var wg sync.WaitGroup
+	workers := 100
+	for range workers {
+		wg.Go(func() {
+			for range 100 {
+				s.increment(userID)
+			}
+		})
+	}
+	wg.Wait()
+	if got := s.aggregate(userID); got != float64(workers*100) {
+		t.Fatalf("want %d, got %v\n", workers*100, got)
 	}
 }
