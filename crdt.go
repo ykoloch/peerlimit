@@ -40,6 +40,21 @@ type store struct {
 	mu      sync.Mutex
 }
 
+func (s *store) allow(k key, rate, burst float64) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.created[k]; !ok {
+		s.created[k] = time.Now()
+	}
+	allowance := time.Since(s.created[k]).Seconds()*rate + burst
+	consumed := s.aggregateLocked(k)
+	if consumed+1 <= allowance {
+		s.incrementLocked(k)
+		return true
+	}
+	return false
+}
+
 func newStore(node nodeID) *store {
 	return &store{node: node, crdt: make(crdt), created: make(map[key]time.Time)}
 }
@@ -47,6 +62,10 @@ func newStore(node nodeID) *store {
 func (s *store) increment(k key) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.incrementLocked(k)
+}
+
+func (s *store) incrementLocked(k key) {
 	if _, ok := s.crdt[k]; !ok {
 		s.crdt[k] = make(gCounter)
 	}
@@ -56,6 +75,10 @@ func (s *store) increment(k key) {
 func (s *store) aggregate(k key) float64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.aggregateLocked(k)
+}
+
+func (s *store) aggregateLocked(k key) float64 {
 	var result float64
 	for _, value := range s.crdt[k] {
 		result += value
