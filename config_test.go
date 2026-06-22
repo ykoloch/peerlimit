@@ -14,38 +14,40 @@ type configTest struct {
 var configTests = []configTest{
 	{
 		name: "correct",
-		config: Config{Bucket: TokenBucket{
-			RefillRate: 10,
-			Burst:      50,
-		},
+		config: Config{
+			Node:         Node1,
+			Rate:         10,
+			Burst:        50,
 			Discovery:    struct{}{},
 			SyncInterval: time.Second,
 		},
 		wantErr: false,
 	},
 	{
-		name: "no bucket",
+		name: "no node",
 		config: Config{
+			Rate:         10,
+			Burst:        50,
 			Discovery:    struct{}{},
 			SyncInterval: time.Second,
 		},
 		wantErr: true,
 	},
 	{
-		name: "no bucket refill rate",
-		config: Config{Bucket: TokenBucket{
-			Burst: 50,
-		},
+		name: "no rate",
+		config: Config{
+			Node:         Node1,
+			Burst:        50,
 			Discovery:    struct{}{},
 			SyncInterval: time.Second,
 		},
 		wantErr: true,
 	},
 	{
-		name: "no bucket burst",
-		config: Config{Bucket: TokenBucket{
-			RefillRate: 10,
-		},
+		name: "no burst",
+		config: Config{
+			Node:         Node1,
+			Rate:         10,
 			Discovery:    struct{}{},
 			SyncInterval: time.Second,
 		},
@@ -53,20 +55,20 @@ var configTests = []configTest{
 	},
 	{
 		name: "no discovery",
-		config: Config{Bucket: TokenBucket{
-			Burst:      50,
-			RefillRate: 10,
-		},
+		config: Config{
+			Node:         Node1,
+			Rate:         10,
+			Burst:        50,
 			SyncInterval: time.Second,
 		},
 		wantErr: true,
 	},
 	{
 		name: "no sync interval",
-		config: Config{Bucket: TokenBucket{
-			Burst:      50,
-			RefillRate: 10,
-		},
+		config: Config{
+			Node:      Node1,
+			Rate:      10,
+			Burst:     50,
 			Discovery: struct{}{},
 		},
 		wantErr: true,

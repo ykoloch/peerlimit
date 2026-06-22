@@ -16,12 +16,11 @@ const (
 
 func TestAllow_NewKeyPasses(t *testing.T) {
 	config := Config{
-		Bucket: TokenBucket{
-			RefillRate: 10,
-			Burst:      burst,
-		},
+		Node:         Node1,
+		Rate:         10,
+		Burst:        burst,
 		Discovery:    struct{}{},
-		SyncInterval: 1,
+		SyncInterval: time.Second,
 	}
 	l, err := New(config)
 	if err != nil {
@@ -35,19 +34,18 @@ func TestAllow_NewKeyPasses(t *testing.T) {
 
 func TestAllow_BurstExhaustion(t *testing.T) {
 	config := Config{
-		Bucket: TokenBucket{
-			RefillRate: 5,
-			Burst:      burst,
-		},
+		Node:         Node1,
+		Rate:         5,
+		Burst:        burst,
 		Discovery:    struct{}{},
-		SyncInterval: 1,
+		SyncInterval: time.Second,
 	}
 	l, err := New(config)
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}
 
-	for i := range int(l.config.Bucket.Burst) {
+	for i := range int(l.config.Burst) {
 		if !l.Allow(context.TODO(), userID) {
 			t.Fatalf("all requests under bucket capacity should be allowed, rejected: %v", i)
 		}
@@ -59,12 +57,11 @@ func TestAllow_BurstExhaustion(t *testing.T) {
 
 func TestAllow_Refill(t *testing.T) {
 	config := Config{
-		Bucket: TokenBucket{
-			RefillRate: 5,
-			Burst:      burst,
-		},
+		Node:         Node1,
+		Rate:         5,
+		Burst:        burst,
 		Discovery:    struct{}{},
-		SyncInterval: 1,
+		SyncInterval: time.Second,
 	}
 	l, err := New(config)
 	if err != nil {
@@ -72,7 +69,7 @@ func TestAllow_Refill(t *testing.T) {
 	}
 
 	// exhaust bucket
-	for range int(l.config.Bucket.Burst) {
+	for range int(l.config.Burst) {
 		l.Allow(context.TODO(), userID)
 	}
 	if l.Allow(context.TODO(), userID) {
@@ -87,12 +84,11 @@ func TestAllow_Refill(t *testing.T) {
 
 func TestAllow_BucketsIsolated(t *testing.T) {
 	config := Config{
-		Bucket: TokenBucket{
-			RefillRate: 5,
-			Burst:      burst,
-		},
+		Node:         Node1,
+		Rate:         5,
+		Burst:        burst,
 		Discovery:    struct{}{},
-		SyncInterval: 1,
+		SyncInterval: time.Second,
 	}
 	l, err := New(config)
 	if err != nil {
@@ -100,7 +96,7 @@ func TestAllow_BucketsIsolated(t *testing.T) {
 	}
 
 	// exhaust bucket for user_1
-	for range int(l.config.Bucket.Burst) {
+	for range int(l.config.Burst) {
 		l.Allow(context.TODO(), userID)
 	}
 	if l.Allow(context.TODO(), userID) {
@@ -114,12 +110,11 @@ func TestAllow_BucketsIsolated(t *testing.T) {
 
 func TestAllow_RaceSingleKey(t *testing.T) {
 	config := Config{
-		Bucket: TokenBucket{
-			RefillRate: 5,
-			Burst:      burst,
-		},
+		Node:         Node1,
+		Rate:         5,
+		Burst:        burst,
 		Discovery:    struct{}{},
-		SyncInterval: 1,
+		SyncInterval: time.Second,
 	}
 	l, err := New(config)
 	if err != nil {
@@ -140,12 +135,11 @@ func TestAllow_RaceSingleKey(t *testing.T) {
 
 func TestAllow_RaceMultKey(t *testing.T) {
 	config := Config{
-		Bucket: TokenBucket{
-			RefillRate: 5,
-			Burst:      burst,
-		},
+		Node:         Node1,
+		Rate:         5,
+		Burst:        burst,
 		Discovery:    struct{}{},
-		SyncInterval: 1,
+		SyncInterval: time.Second,
 	}
 	l, err := New(config)
 	if err != nil {
