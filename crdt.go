@@ -34,29 +34,42 @@ func (c crdt) merge(input crdt) {
 }
 
 type store struct {
-	node    nodeID
-	crdt    crdt
-	created map[key]time.Time
-	mu      sync.Mutex
+	node     nodeID
+	crdt     crdt
+	baseline map[key]time.Time
+	mu       sync.Mutex
 }
 
 func (s *store) allow(k key, rate, burst float64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.created[k]; !ok {
-		s.created[k] = time.Now()
+
+	if _, ok := s.baseline[k]; !ok {
+		s.baseline[k] = time.Now()
 	}
-	allowance := time.Since(s.created[k]).Seconds()*rate + burst
+
+	// total tokens budget accumulated since baseline
+	budget := time.Since(s.baseline[k]).Seconds()*rate + burst
 	consumed := s.aggregateLocked(k)
-	if consumed+1 <= allowance {
-		s.incrementLocked(k)
-		return true
+	available := budget - consumed
+	if available < 1.0 {
+		return false
 	}
-	return false
+
+	// overflow - number of tokens that exceeds burst
+	if overflow := available - burst; overflow > 0 {
+		// shift: how long it took to over-accrue these surplus tokens —
+		// rewind baseline by exactly that, so the surplus is "un-earned"
+		shift := time.Duration((overflow / rate) * float64(time.Second))
+		s.baseline[k] = s.baseline[k].Add(shift)
+	}
+
+	s.incrementLocked(k)
+	return true
 }
 
 func newStore(node nodeID) *store {
-	return &store{node: node, crdt: make(crdt), created: make(map[key]time.Time)}
+	return &store{node: node, crdt: make(crdt), baseline: make(map[key]time.Time)}
 }
 
 func (s *store) increment(k key) {

@@ -3,6 +3,7 @@ package peerlimit
 import (
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStore_Increment(t *testing.T) {
@@ -60,5 +61,23 @@ func TestStore_Race(t *testing.T) {
 	wg.Wait()
 	if got := s.aggregate(userID); got != float64(workers*100) {
 		t.Fatalf("want %d, got %v\n", workers*100, got)
+	}
+}
+
+func TestStore_AllowCapsColdStart(t *testing.T) {
+	s := newStore(Node1)
+	rate, burst := 10.0, 200.0
+	// the key has been idle for an hour
+	s.baseline[userID] = time.Now().Add(-time.Hour)
+	passed := 0
+
+	for s.allow(userID, rate, burst) {
+		passed++
+		if passed > int(burst)+1 {
+			t.Fatalf("cold start cap failed: passed %v, expected stop at burst", passed)
+		}
+	}
+	if passed != int(burst) {
+		t.Fatalf("wanted exactly burst= %v, got: %v", burst, int(passed))
 	}
 }
