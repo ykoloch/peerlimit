@@ -1,6 +1,7 @@
 package peerlimit
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 )
@@ -103,4 +104,14 @@ func (s *store) merge(input crdt) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.crdt.merge(input)
+}
+
+func (c crdt) marshal() ([]byte, error) {
+	return json.Marshal(c)
+}
+
+func unmarshalCRDT(data []byte) (crdt, error) {
+	c := make(crdt)
+	err := json.Unmarshal(data, &c)
+	return c, err
 }

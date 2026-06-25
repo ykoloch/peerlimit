@@ -159,3 +159,18 @@ func TestMerge_CRDT_Associative(t *testing.T) {
 		t.Fatalf("merge is not associative:\nleft  = %v\nright = %v", left, right)
 	}
 }
+
+func TestMarshalUnmarshal_CRDT(t *testing.T) {
+	data, err := propA.marshal()
+	if err != nil {
+		t.Fatalf("error marshalling crdt: %v\n", err)
+	}
+
+	c, err := unmarshalCRDT(data)
+	if err != nil {
+		t.Fatalf("error unmarshaling crdt: %v\n", err)
+	}
+	if !reflect.DeepEqual(c, propA) {
+		t.Fatalf("unmarshalling is not correct. want: %v, got: %v\n", propA, c)
+	}
+}
