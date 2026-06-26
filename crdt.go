@@ -106,6 +106,12 @@ func (s *store) merge(input crdt) {
 	s.crdt.merge(input)
 }
 
+func (s *store) snapshot() ([]byte, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.crdt.marshal()
+}
+
 func (c crdt) marshal() ([]byte, error) {
 	return json.Marshal(c)
 }
