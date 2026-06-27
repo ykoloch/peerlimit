@@ -2,6 +2,7 @@ package peerlimit
 
 import (
 	"errors"
+	"io"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type Config struct {
 	// SyncInterval is how often the limiter gossips its local state to peers
 	// and merges theirs. It must be positive.
 	SyncInterval time.Duration
+	LogOutput    io.Writer
 }
 
 func (c Config) validate() error {

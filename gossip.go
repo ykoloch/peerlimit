@@ -1,6 +1,8 @@
 package peerlimit
 
 import (
+	"io"
+
 	"github.com/hashicorp/memberlist"
 )
 
@@ -37,6 +39,11 @@ func (d *delegate) MergeRemoteState(buf []byte, _ bool) {
 
 func startGossip(s *store, conf Config) (*memberlist.Memberlist, error) {
 	mlConf := memberlist.DefaultLANConfig()
+	if conf.LogOutput != nil {
+		mlConf.LogOutput = conf.LogOutput
+	} else {
+		mlConf.LogOutput = io.Discard
+	}
 	mlConf.PushPullInterval = conf.SyncInterval
 	mlConf.BindPort = conf.BindPort
 	mlConf.AdvertisePort = conf.BindPort

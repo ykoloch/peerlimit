@@ -17,6 +17,7 @@ func New(conf Config) (*Limiter, error) {
 	if err := conf.validate(); err != nil {
 		return nil, err
 	}
+
 	s := newStore(conf.Node)
 	ml, err := startGossip(s, conf)
 	if err != nil {
