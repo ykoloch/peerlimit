@@ -1,5 +1,9 @@
 package peerlimit
 
+import (
+	"github.com/hashicorp/memberlist"
+)
+
 type delegate struct {
 	store *store
 }
@@ -29,4 +33,27 @@ func (d *delegate) MergeRemoteState(buf []byte, _ bool) {
 		return
 	}
 	d.store.merge(crdt)
+}
+
+func startGossip(s *store, conf Config) (*memberlist.Memberlist, error) {
+	mlConf := memberlist.DefaultLANConfig()
+	mlConf.PushPullInterval = conf.SyncInterval
+	mlConf.BindPort = conf.BindPort
+	mlConf.AdvertisePort = conf.BindPort
+	mlConf.Name = string(s.node)
+	mlConf.Delegate = &delegate{store: s}
+
+	list, err := memberlist.Create(mlConf)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(conf.Seeds) > 0 {
+		_, err := list.Join(conf.Seeds)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return list, nil
 }

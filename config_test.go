@@ -16,7 +16,6 @@ var configTests = []configTest{
 		name: "correct",
 		config: Config{
 			Node:         Node1,
-			Seeds:        []string{"localhost:8080"},
 			BindPort:     8080,
 			Rate:         10,
 			Burst:        50,
@@ -28,7 +27,6 @@ var configTests = []configTest{
 		name: "no bind port",
 		config: Config{
 			Node:         Node1,
-			Seeds:        []string{"localhost:8080"},
 			Rate:         10,
 			Burst:        50,
 			SyncInterval: time.Second,
@@ -38,8 +36,7 @@ var configTests = []configTest{
 	{
 		name: "no node",
 		config: Config{
-			Seeds:        []string{"localhost:8080"},
-			BindPort:     8080,
+			BindPort:     8081,
 			Rate:         10,
 			Burst:        50,
 			SyncInterval: time.Second,
@@ -50,8 +47,7 @@ var configTests = []configTest{
 		name: "no rate",
 		config: Config{
 			Node:         Node1,
-			BindPort:     8080,
-			Seeds:        []string{"localhost:8080"},
+			BindPort:     8082,
 			Burst:        50,
 			SyncInterval: time.Second,
 		},
@@ -61,8 +57,7 @@ var configTests = []configTest{
 		name: "no burst",
 		config: Config{
 			Node:         Node1,
-			BindPort:     8080,
-			Seeds:        []string{"localhost:8080"},
+			BindPort:     8083,
 			Rate:         10,
 			SyncInterval: time.Second,
 		},
@@ -72,8 +67,7 @@ var configTests = []configTest{
 		name: "no sync interval",
 		config: Config{
 			Node:     Node1,
-			BindPort: 8080,
-			Seeds:    []string{"localhost:8080"},
+			BindPort: 8084,
 			Rate:     10,
 			Burst:    50,
 		},

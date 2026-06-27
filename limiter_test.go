@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -14,39 +15,38 @@ const (
 	burst   = 50
 )
 
-func TestAllow_NewKeyPasses(t *testing.T) {
-	config := Config{
+// portSeq hands out a unique BindPort per test limiter so that several
+// memberlist instances in the same test binary never collide on one port.
+var portSeq atomic.Int32
+
+// newTestLimiter builds a single-node limiter on its own port and registers
+// Close via t.Cleanup, so the memberlist listeners and goroutines are torn
+// down when the test ends. Seeds is empty: a lone node bootstraps without Join.
+func newTestLimiter(t *testing.T, rate float64) *Limiter {
+	t.Helper()
+	l, err := New(Config{
 		Node:         Node1,
-		BindPort:     8080,
-		Seeds:        []string{"localhost:8080"},
-		Rate:         10,
+		BindPort:     8080 + int(portSeq.Add(1)),
+		Rate:         rate,
 		Burst:        burst,
 		SyncInterval: time.Second,
-	}
-	l, err := New(config)
+	})
 	if err != nil {
 		t.Fatalf("got error: %v", err)
 	}
-	result := l.Allow(context.TODO(), userID)
-	if !result {
+	t.Cleanup(l.Close)
+	return l
+}
+
+func TestAllow_NewKeyPasses(t *testing.T) {
+	l := newTestLimiter(t, 10)
+	if !l.Allow(context.TODO(), userID) {
 		t.Error("Allow on fresh key=false, want true")
 	}
 }
 
 func TestAllow_BurstExhaustion(t *testing.T) {
-	config := Config{
-		Node:         Node1,
-		BindPort:     8080,
-		Seeds:        []string{"localhost:8080"},
-		Rate:         5,
-		Burst:        burst,
-		SyncInterval: time.Second,
-	}
-	l, err := New(config)
-	if err != nil {
-		t.Fatalf("got error: %v", err)
-	}
-
+	l := newTestLimiter(t, 5)
 	for i := range int(l.config.Burst) {
 		if !l.Allow(context.TODO(), userID) {
 			t.Fatalf("all requests under bucket capacity should be allowed, rejected: %v", i)
@@ -58,18 +58,7 @@ func TestAllow_BurstExhaustion(t *testing.T) {
 }
 
 func TestAllow_Refill(t *testing.T) {
-	config := Config{
-		Node:         Node1,
-		BindPort:     8080,
-		Seeds:        []string{"localhost:8080"},
-		Rate:         5,
-		Burst:        burst,
-		SyncInterval: time.Second,
-	}
-	l, err := New(config)
-	if err != nil {
-		t.Fatalf("got error: %v", err)
-	}
+	l := newTestLimiter(t, 5)
 
 	// exhaust bucket
 	for range int(l.config.Burst) {
@@ -86,18 +75,7 @@ func TestAllow_Refill(t *testing.T) {
 }
 
 func TestAllow_BucketsIsolated(t *testing.T) {
-	config := Config{
-		Node:         Node1,
-		BindPort:     8080,
-		Seeds:        []string{"localhost:8080"},
-		Rate:         5,
-		Burst:        burst,
-		SyncInterval: time.Second,
-	}
-	l, err := New(config)
-	if err != nil {
-		t.Fatalf("got error: %v", err)
-	}
+	l := newTestLimiter(t, 5)
 
 	// exhaust bucket for user_1
 	for range int(l.config.Burst) {
@@ -113,18 +91,7 @@ func TestAllow_BucketsIsolated(t *testing.T) {
 }
 
 func TestAllow_RaceSingleKey(t *testing.T) {
-	config := Config{
-		Node:         Node1,
-		BindPort:     8080,
-		Seeds:        []string{"localhost:8080"},
-		Rate:         5,
-		Burst:        burst,
-		SyncInterval: time.Second,
-	}
-	l, err := New(config)
-	if err != nil {
-		t.Fatalf("got error: %v", err)
-	}
+	l := newTestLimiter(t, 5)
 
 	workers := 100
 	var wg sync.WaitGroup
@@ -139,18 +106,7 @@ func TestAllow_RaceSingleKey(t *testing.T) {
 }
 
 func TestAllow_RaceMultKey(t *testing.T) {
-	config := Config{
-		Node:         Node1,
-		BindPort:     8080,
-		Seeds:        []string{"localhost:8080"},
-		Rate:         5,
-		Burst:        burst,
-		SyncInterval: time.Second,
-	}
-	l, err := New(config)
-	if err != nil {
-		t.Fatalf("got error: %v", err)
-	}
+	l := newTestLimiter(t, 5)
 
 	workers := 100
 	var wg sync.WaitGroup
