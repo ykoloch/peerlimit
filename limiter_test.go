@@ -17,9 +17,10 @@ const (
 func TestAllow_NewKeyPasses(t *testing.T) {
 	config := Config{
 		Node:         Node1,
+		BindPort:     8080,
+		Seeds:        []string{"localhost:8080"},
 		Rate:         10,
 		Burst:        burst,
-		Discovery:    struct{}{},
 		SyncInterval: time.Second,
 	}
 	l, err := New(config)
@@ -35,9 +36,10 @@ func TestAllow_NewKeyPasses(t *testing.T) {
 func TestAllow_BurstExhaustion(t *testing.T) {
 	config := Config{
 		Node:         Node1,
+		BindPort:     8080,
+		Seeds:        []string{"localhost:8080"},
 		Rate:         5,
 		Burst:        burst,
-		Discovery:    struct{}{},
 		SyncInterval: time.Second,
 	}
 	l, err := New(config)
@@ -58,9 +60,10 @@ func TestAllow_BurstExhaustion(t *testing.T) {
 func TestAllow_Refill(t *testing.T) {
 	config := Config{
 		Node:         Node1,
+		BindPort:     8080,
+		Seeds:        []string{"localhost:8080"},
 		Rate:         5,
 		Burst:        burst,
-		Discovery:    struct{}{},
 		SyncInterval: time.Second,
 	}
 	l, err := New(config)
@@ -85,9 +88,10 @@ func TestAllow_Refill(t *testing.T) {
 func TestAllow_BucketsIsolated(t *testing.T) {
 	config := Config{
 		Node:         Node1,
+		BindPort:     8080,
+		Seeds:        []string{"localhost:8080"},
 		Rate:         5,
 		Burst:        burst,
-		Discovery:    struct{}{},
 		SyncInterval: time.Second,
 	}
 	l, err := New(config)
@@ -111,9 +115,10 @@ func TestAllow_BucketsIsolated(t *testing.T) {
 func TestAllow_RaceSingleKey(t *testing.T) {
 	config := Config{
 		Node:         Node1,
+		BindPort:     8080,
+		Seeds:        []string{"localhost:8080"},
 		Rate:         5,
 		Burst:        burst,
-		Discovery:    struct{}{},
 		SyncInterval: time.Second,
 	}
 	l, err := New(config)
@@ -136,9 +141,10 @@ func TestAllow_RaceSingleKey(t *testing.T) {
 func TestAllow_RaceMultKey(t *testing.T) {
 	config := Config{
 		Node:         Node1,
+		BindPort:     8080,
+		Seeds:        []string{"localhost:8080"},
 		Rate:         5,
 		Burst:        burst,
-		Discovery:    struct{}{},
 		SyncInterval: time.Second,
 	}
 	l, err := New(config)
