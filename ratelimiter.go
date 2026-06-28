@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/memberlist"
 )
 
+const dnsResolveTimeout = time.Second * 2
+
 type Limiter struct {
 	config Config
 	store  *store
@@ -58,7 +60,7 @@ func (l *Limiter) discoverLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-t.C:
-			cctx, cancel := context.WithTimeout(ctx, time.Second*2)
+			cctx, cancel := context.WithTimeout(ctx, dnsResolveTimeout)
 			seeds, _ := l.config.Discoverer.Discover(cctx)
 			cancel()
 			if len(seeds) > 0 {
