@@ -1,6 +1,7 @@
 package peerlimit
 
 import (
+	"context"
 	"io"
 
 	"github.com/hashicorp/memberlist"
@@ -37,7 +38,7 @@ func (d *delegate) MergeRemoteState(buf []byte, _ bool) {
 	d.store.merge(crdt)
 }
 
-func startGossip(s *store, conf Config) (*memberlist.Memberlist, error) {
+func startGossip(ctx context.Context, s *store, conf Config) (*memberlist.Memberlist, error) {
 	mlConf := memberlist.DefaultLANConfig()
 	if conf.LogOutput != nil {
 		mlConf.LogOutput = conf.LogOutput
@@ -55,8 +56,13 @@ func startGossip(s *store, conf Config) (*memberlist.Memberlist, error) {
 		return nil, err
 	}
 
-	if len(conf.Seeds) > 0 {
-		_, err := list.Join(conf.Seeds)
+	seeds, err := conf.Discoverer.Discover(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(seeds) > 0 {
+		_, err := list.Join(seeds)
 		if err != nil {
 			return nil, err
 		}

@@ -1,9 +1,16 @@
 package peerlimit
 
 import (
+	"context"
 	"testing"
 	"time"
 )
+
+// stubDiscoverer is a no-op PeerDiscoverer used to satisfy Config validation
+// in tests that are not about discovery itself.
+type stubDiscoverer struct{}
+
+func (stubDiscoverer) Discover(context.Context) ([]string, error) { return nil, nil }
 
 type configTest struct {
 	name    string
@@ -17,6 +24,7 @@ var configTests = []configTest{
 		config: Config{
 			Node:         Node1,
 			BindPort:     8080,
+			Discoverer:   stubDiscoverer{},
 			Rate:         10,
 			Burst:        50,
 			SyncInterval: time.Second,
@@ -27,6 +35,7 @@ var configTests = []configTest{
 		name: "no bind port",
 		config: Config{
 			Node:         Node1,
+			Discoverer:   stubDiscoverer{},
 			Rate:         10,
 			Burst:        50,
 			SyncInterval: time.Second,
@@ -37,6 +46,18 @@ var configTests = []configTest{
 		name: "no node",
 		config: Config{
 			BindPort:     8081,
+			Discoverer:   stubDiscoverer{},
+			Rate:         10,
+			Burst:        50,
+			SyncInterval: time.Second,
+		},
+		wantErr: true,
+	},
+	{
+		name: "no discoverer",
+		config: Config{
+			Node:         Node1,
+			BindPort:     8082,
 			Rate:         10,
 			Burst:        50,
 			SyncInterval: time.Second,
@@ -47,7 +68,8 @@ var configTests = []configTest{
 		name: "no rate",
 		config: Config{
 			Node:         Node1,
-			BindPort:     8082,
+			BindPort:     8083,
+			Discoverer:   stubDiscoverer{},
 			Burst:        50,
 			SyncInterval: time.Second,
 		},
@@ -57,7 +79,8 @@ var configTests = []configTest{
 		name: "no burst",
 		config: Config{
 			Node:         Node1,
-			BindPort:     8083,
+			BindPort:     8084,
+			Discoverer:   stubDiscoverer{},
 			Rate:         10,
 			SyncInterval: time.Second,
 		},
@@ -66,10 +89,11 @@ var configTests = []configTest{
 	{
 		name: "no sync interval",
 		config: Config{
-			Node:     Node1,
-			BindPort: 8084,
-			Rate:     10,
-			Burst:    50,
+			Node:       Node1,
+			BindPort:   8085,
+			Discoverer: stubDiscoverer{},
+			Rate:       10,
+			Burst:      50,
 		},
 		wantErr: true,
 	},

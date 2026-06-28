@@ -8,11 +8,9 @@ import (
 
 // Config holds the parameters for a Limiter and is passed to New.
 type Config struct {
-	// TODO: NodeID from memberlist
-	Node     nodeID
-	BindPort int
-
-	Seeds []string
+	Node       nodeID
+	BindPort   int
+	Discoverer PeerDiscoverer
 
 	Rate  float64
 	Burst float64
@@ -39,6 +37,9 @@ func (c Config) validate() error {
 	}
 	if c.SyncInterval < 1 {
 		errs = append(errs, errors.New("sync interval should be positive"))
+	}
+	if c.Discoverer == nil {
+		errs = append(errs, errors.New("discoverer can not be empty"))
 	}
 	return errors.Join(errs...)
 }

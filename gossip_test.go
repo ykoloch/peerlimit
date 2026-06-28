@@ -7,10 +7,10 @@ import (
 )
 
 func TestGossip_Converges(t *testing.T) {
-	seeds := []string{"localhost:8080"}
-	limA, err := New(
+	limA, err := New(context.TODO(),
 		Config{
 			Node:         Node1,
+			Discoverer:   NewStaticDiscoverer("localhost:8080", "localhost:8081"),
 			BindPort:     8080,
 			Rate:         10,
 			Burst:        burst,
@@ -21,9 +21,9 @@ func TestGossip_Converges(t *testing.T) {
 		t.Fatalf("got error: %v", err)
 	}
 
-	limB, err := New(
+	limB, err := New(context.TODO(),
 		Config{
-			Seeds:        seeds,
+			Discoverer:   NewStaticDiscoverer("localhost:8080", "localhost:8081"),
 			Node:         Node2,
 			BindPort:     8081,
 			Rate:         10,
@@ -45,12 +45,12 @@ func TestGossip_Converges(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 300)
 
-	gotA :=  limA.store.aggregate(userID)
-	if gotA != 8{
+	gotA := limA.store.aggregate(userID)
+	if gotA != 8 {
 		t.Fatalf("limiter A should have aggregate 8, got %v", gotA)
 	}
-	gotB :=  limB.store.aggregate(userID)
-	if gotB != 8{
+	gotB := limB.store.aggregate(userID)
+	if gotB != 8 {
 		t.Fatalf("limiter B should have aggregate 8, got %v", gotB)
 	}
 

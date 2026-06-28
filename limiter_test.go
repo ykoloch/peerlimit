@@ -21,12 +21,14 @@ var portSeq atomic.Int32
 
 // newTestLimiter builds a single-node limiter on its own port and registers
 // Close via t.Cleanup, so the memberlist listeners and goroutines are torn
-// down when the test ends. Seeds is empty: a lone node bootstraps without Join.
+// down when the test ends. The discoverer returns no peers, so a lone node
+// bootstraps without calling Join.
 func newTestLimiter(t *testing.T, rate float64) *Limiter {
 	t.Helper()
-	l, err := New(Config{
+	l, err := New(context.Background(), Config{
 		Node:         Node1,
 		BindPort:     8080 + int(portSeq.Add(1)),
+		Discoverer:   NewStaticDiscoverer(),
 		Rate:         rate,
 		Burst:        burst,
 		SyncInterval: time.Second,
