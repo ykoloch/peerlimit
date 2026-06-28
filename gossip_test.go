@@ -9,12 +9,13 @@ import (
 func TestGossip_Converges(t *testing.T) {
 	limA, err := New(context.TODO(),
 		Config{
-			Node:         Node1,
-			Discoverer:   NewStaticDiscoverer("localhost:8080", "localhost:8081"),
-			BindPort:     8080,
-			Rate:         10,
-			Burst:        burst,
-			SyncInterval: time.Millisecond * 20,
+			Node:             Node1,
+			Discoverer:       NewStaticDiscoverer("localhost:8080", "localhost:8081"),
+			BindPort:         8080,
+			Rate:             10,
+			Burst:            burst,
+			SyncInterval:     time.Millisecond * 20,
+			DiscoverInterval: time.Second * 5,
 		},
 	)
 	if err != nil {
@@ -23,12 +24,13 @@ func TestGossip_Converges(t *testing.T) {
 
 	limB, err := New(context.TODO(),
 		Config{
-			Discoverer:   NewStaticDiscoverer("localhost:8080", "localhost:8081"),
-			Node:         Node2,
-			BindPort:     8081,
-			Rate:         10,
-			Burst:        burst,
-			SyncInterval: time.Millisecond * 20,
+			Discoverer:       NewStaticDiscoverer("localhost:8080", "localhost:8081"),
+			Node:             Node2,
+			BindPort:         8081,
+			Rate:             10,
+			Burst:            burst,
+			SyncInterval:     time.Millisecond * 20,
+			DiscoverInterval: time.Second * 5,
 		},
 	)
 	if err != nil {

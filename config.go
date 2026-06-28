@@ -18,7 +18,9 @@ type Config struct {
 	// SyncInterval is how often the limiter gossips its local state to peers
 	// and merges theirs. It must be positive.
 	SyncInterval time.Duration
-	LogOutput    io.Writer
+	// DiscoverInterval is how often the limiter discovers new peers
+	DiscoverInterval time.Duration
+	LogOutput        io.Writer
 }
 
 func (c Config) validate() error {
@@ -37,6 +39,9 @@ func (c Config) validate() error {
 	}
 	if c.SyncInterval < 1 {
 		errs = append(errs, errors.New("sync interval should be positive"))
+	}
+	if c.DiscoverInterval < 1 {
+		errs = append(errs, errors.New("discover interval should be positive"))
 	}
 	if c.Discoverer == nil {
 		errs = append(errs, errors.New("discoverer can not be empty"))

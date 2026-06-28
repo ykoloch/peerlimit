@@ -26,12 +26,13 @@ var portSeq atomic.Int32
 func newTestLimiter(t *testing.T, rate float64) *Limiter {
 	t.Helper()
 	l, err := New(context.Background(), Config{
-		Node:         Node1,
-		BindPort:     8080 + int(portSeq.Add(1)),
-		Discoverer:   NewStaticDiscoverer(),
-		Rate:         rate,
-		Burst:        burst,
-		SyncInterval: time.Second,
+		Node:             Node1,
+		BindPort:         8080 + int(portSeq.Add(1)),
+		Discoverer:       NewStaticDiscoverer(),
+		Rate:             rate,
+		DiscoverInterval: time.Second * 5,
+		Burst:            burst,
+		SyncInterval:     time.Second,
 	})
 	if err != nil {
 		t.Fatalf("got error: %v", err)

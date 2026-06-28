@@ -62,10 +62,8 @@ func startGossip(ctx context.Context, s *store, conf Config) (*memberlist.Member
 	}
 
 	if len(seeds) > 0 {
-		_, err := list.Join(seeds)
-		if err != nil {
-			return nil, err
-		}
+		// TODO: error?
+		_, _ = list.Join(seeds)
 	}
 
 	return list, nil
