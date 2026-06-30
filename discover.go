@@ -2,6 +2,7 @@ package peerlimit
 
 import (
 	"context"
+	"errors"
 	"net"
 )
 
@@ -38,6 +39,11 @@ func NewDNSDiscoverer(host, port string) PeerDiscoverer {
 func (dd *dnsDiscoverer) Discover(ctx context.Context) ([]string, error) {
 	addrs, err := net.DefaultResolver.LookupHost(ctx, dd.host)
 	if err != nil {
+		var dnsErr *net.DNSError
+		if errors.As(err, &dnsErr) && dnsErr.IsNotFound {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 

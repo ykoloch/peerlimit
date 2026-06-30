@@ -36,20 +36,22 @@ func TestDiscover_DNSDiscoverer_Happy(t *testing.T) {
 	}
 }
 
-// TestDiscover_DNSDiscoverer_Unresolvable verifies that an unresolvable name
-// surfaces the resolver error instead of being swallowed into an empty result.
+// TestDiscover_DNSDiscoverer_NotFoundIsEmpty verifies that a name with no
+// records is treated as "no peers yet" — an empty result with no error, not a
+// failure. This is the cold-start case: a headless service with zero ready
+// endpoints resolves to nothing.
 //
-// The .invalid TLD is reserved by RFC 6761 and never resolves, so this normally
-// yields NXDOMAIN. A resolver that hijacks NXDOMAIN (some corporate/ISP setups)
-// could return an address and make this flaky; accepted until we classify DNS
-// errors (NotFound vs real failure).
-func TestDiscover_DNSDiscoverer_Unresolvable(t *testing.T) {
+// The .invalid TLD is reserved by RFC 6761 and never resolves, so it yields
+// NXDOMAIN, which Go surfaces as *net.DNSError with IsNotFound set. A resolver
+// that hijacks NXDOMAIN (some corporate/ISP setups) could return an address and
+// make this flaky; accepted as an environment trade-off.
+func TestDiscover_DNSDiscoverer_NotFoundIsEmpty(t *testing.T) {
 	d := NewDNSDiscoverer("peerlimit-does-not-exist.invalid", dPort)
 	seeds, err := d.Discover(context.Background())
-	if err == nil {
-		t.Fatalf("discover should error on an unresolvable name, got seeds: %v", seeds)
+	if err != nil {
+		t.Fatalf("not-found should not error, got: %v", err)
 	}
-	if seeds != nil {
-		t.Errorf("seeds should be nil on error, got: %v", seeds)
+	if len(seeds) != 0 {
+		t.Errorf("not-found should yield no seeds, got: %v", seeds)
 	}
 }
