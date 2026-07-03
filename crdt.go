@@ -34,16 +34,24 @@ func (c crdt) merge(input crdt) {
 	}
 }
 
+// store holds the per-key CRDT plus the local bookkeeping a token-bucket
+// decision needs — baseline for refill, lastSeen for eviction — all guarded by
+// mu.
 type store struct {
 	node     nodeID
 	crdt     crdt
 	baseline map[key]time.Time
 	mu       sync.Mutex
+	lastSeen map[key]time.Time
 }
 
+// allow makes the token-bucket decision for k over the aggregated G-Counter,
+// recording consumption when it returns true.
 func (s *store) allow(k key, rate, burst float64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	s.lastSeen[k] = time.Now()
 
 	if _, ok := s.baseline[k]; !ok {
 		s.baseline[k] = time.Now()
@@ -70,7 +78,7 @@ func (s *store) allow(k key, rate, burst float64) bool {
 }
 
 func newStore(node nodeID) *store {
-	return &store{node: node, crdt: make(crdt), baseline: make(map[key]time.Time)}
+	return &store{node: node, crdt: make(crdt), baseline: make(map[key]time.Time), lastSeen: make(map[key]time.Time)}
 }
 
 func (s *store) increment(k key) {
@@ -79,6 +87,8 @@ func (s *store) increment(k key) {
 	s.incrementLocked(k)
 }
 
+// incrementLocked bumps this node's cell for k. The caller must hold mu, as
+// with every *Locked helper.
 func (s *store) incrementLocked(k key) {
 	if _, ok := s.crdt[k]; !ok {
 		s.crdt[k] = make(gCounter)
@@ -110,6 +120,21 @@ func (s *store) snapshot() ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.crdt.marshal()
+}
+
+// sweep evicts every key idle longer than ttl, dropping it from all local maps.
+// The whole pass is held under mu.
+func (s *store) sweep(ttl time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k := range s.lastSeen {
+		passed := time.Since(s.lastSeen[k])
+		if passed > ttl {
+			delete(s.baseline, k)
+			delete(s.lastSeen, k)
+			delete(s.crdt, k)
+		}
+	}
 }
 
 func (c crdt) marshal() ([]byte, error) {
