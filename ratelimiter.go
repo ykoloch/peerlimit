@@ -38,6 +38,12 @@ func New(ctx context.Context, conf Config) (*Limiter, error) {
 		limiter.discoverLoop(loopCtx)
 	})
 
+	if conf.KeyTTL > 0 {
+		limiter.wg.Go(func() {
+			limiter.sweepLoop(loopCtx)
+		})
+	}
+
 	return limiter, nil
 }
 
@@ -55,6 +61,7 @@ func (l *Limiter) Allow(_ context.Context, k string) bool {
 func (l *Limiter) discoverLoop(ctx context.Context) {
 	t := time.NewTicker(l.config.DiscoverInterval)
 	defer t.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -67,6 +74,20 @@ func (l *Limiter) discoverLoop(ctx context.Context) {
 				// TODO: log error?
 				_, _ = l.ml.Join(seeds)
 			}
+		}
+	}
+}
+
+func (l *Limiter) sweepLoop(ctx context.Context) {
+	t := time.NewTicker(l.config.SweepInterval)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			l.store.sweep(l.config.KeyTTL)
 		}
 	}
 }

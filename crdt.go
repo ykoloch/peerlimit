@@ -39,11 +39,14 @@ type store struct {
 	crdt     crdt
 	baseline map[key]time.Time
 	mu       sync.Mutex
+	lastSeen map[key]time.Time
 }
 
 func (s *store) allow(k key, rate, burst float64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	s.lastSeen[k] = time.Now()
 
 	if _, ok := s.baseline[k]; !ok {
 		s.baseline[k] = time.Now()
@@ -70,7 +73,7 @@ func (s *store) allow(k key, rate, burst float64) bool {
 }
 
 func newStore(node nodeID) *store {
-	return &store{node: node, crdt: make(crdt), baseline: make(map[key]time.Time)}
+	return &store{node: node, crdt: make(crdt), baseline: make(map[key]time.Time), lastSeen: make(map[key]time.Time)}
 }
 
 func (s *store) increment(k key) {
@@ -110,6 +113,19 @@ func (s *store) snapshot() ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.crdt.marshal()
+}
+
+func (s *store) sweep(ttl time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k := range s.lastSeen {
+		passed := time.Since(s.lastSeen[k])
+		if passed > ttl {
+			delete(s.baseline, k)
+			delete(s.lastSeen, k)
+			delete(s.crdt, k)
+		}
+	}
 }
 
 func (c crdt) marshal() ([]byte, error) {
