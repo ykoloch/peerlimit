@@ -193,4 +193,4 @@ planned. Finally, the consistency model is eventual by design, as detailed in
 
 ## License
 
-TBD
+MIT — see [LICENSE](LICENSE).
