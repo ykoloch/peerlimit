@@ -6,6 +6,9 @@ import (
 	"net"
 )
 
+// PeerDiscoverer returns the current peer addresses ("host:port") to join. It is
+// called once at startup and then polled periodically, so the set may change as
+// peers come and go.
 type PeerDiscoverer interface {
 	Discover(context.Context) ([]string, error)
 }
@@ -14,6 +17,8 @@ type staticDiscoverer struct {
 	peers []string
 }
 
+// NewStaticDiscoverer returns a PeerDiscoverer that always yields addrs. Use it
+// for a fixed peer list known at startup.
 func NewStaticDiscoverer(addrs ...string) PeerDiscoverer {
 	return &staticDiscoverer{
 		peers: addrs,
@@ -29,6 +34,9 @@ type dnsDiscoverer struct {
 	port string
 }
 
+// NewDNSDiscoverer returns a PeerDiscoverer that resolves host to its addresses
+// and appends port to each — e.g. a Kubernetes headless service. A name that
+// does not resolve yields no peers rather than an error.
 func NewDNSDiscoverer(host, port string) PeerDiscoverer {
 	return &dnsDiscoverer{
 		host: host,

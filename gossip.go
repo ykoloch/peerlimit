@@ -7,6 +7,9 @@ import (
 	"github.com/hashicorp/memberlist"
 )
 
+// delegate bridges the store to memberlist: it ships the local CRDT as this
+// node's state and merges the CRDTs received from peers. The remaining
+// memberlist.Delegate methods are unused.
 type delegate struct {
 	store *store
 }
@@ -22,6 +25,7 @@ func (d *delegate) GetBroadcasts(overhead, limit int) [][]byte {
 	return nil
 }
 
+// LocalState returns this node's CRDT snapshot for memberlist to push to a peer.
 func (d *delegate) LocalState(_ bool) []byte {
 	crdt, err := d.store.snapshot()
 	if err != nil {
@@ -30,6 +34,8 @@ func (d *delegate) LocalState(_ bool) []byte {
 	return crdt
 }
 
+// MergeRemoteState merges a peer's CRDT snapshot into the local store. A
+// malformed payload is dropped.
 func (d *delegate) MergeRemoteState(buf []byte, _ bool) {
 	crdt, err := unmarshalCRDT(buf)
 	if err != nil {
@@ -38,6 +44,8 @@ func (d *delegate) MergeRemoteState(buf []byte, _ bool) {
 	d.store.merge(crdt)
 }
 
+// startGossip configures and starts memberlist for s, then joins the seeds the
+// Discoverer returns.
 func startGossip(ctx context.Context, s *store, conf Config) (*memberlist.Memberlist, error) {
 	mlConf := memberlist.DefaultLANConfig()
 	if conf.LogOutput != nil {

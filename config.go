@@ -8,24 +8,34 @@ import (
 
 // Config holds the parameters for a Limiter and is passed to New.
 type Config struct {
-	Node       nodeID
-	BindPort   int
+	// Node is this process's identity in the cluster. It must be unique and
+	// stable for the process's lifetime: it names this node's own G-Counter cell.
+	Node nodeID
+	// BindPort is the port memberlist listens on for gossip.
+	BindPort int
+	// Discoverer supplies the peer addresses to join, at startup and on every
+	// DiscoverInterval tick.
 	Discoverer PeerDiscoverer
 
-	Rate  float64
+	// Rate is the sustained refill rate, in tokens per second.
+	Rate float64
+	// Burst is the bucket capacity: the most tokens available at once.
 	Burst float64
 
-	// KeyTTL is a time to live of a particular key
+	// KeyTTL is how long a key may sit idle before it is evicted from local
+	// state. Zero disables eviction. Must be set together with SweepInterval.
 	KeyTTL time.Duration
-
-	// SyncInterval is how often the limiter gossips its local state to peers
-	// and merges theirs. It must be positive.
-	SyncInterval time.Duration
-	// DiscoverInterval is how often the limiter discovers new peers
-	DiscoverInterval time.Duration
-	// SweepInterval is how often KeyTTLs are assessed
+	// SweepInterval is how often idle keys are checked against KeyTTL. Zero
+	// disables eviction. Must be set together with KeyTTL.
 	SweepInterval time.Duration
 
+	// SyncInterval is how often this node gossips its state to peers and merges
+	// theirs. Must be positive.
+	SyncInterval time.Duration
+	// DiscoverInterval is how often Discoverer is polled for peers. Must be positive.
+	DiscoverInterval time.Duration
+
+	// LogOutput receives memberlist's internal logs. Nil discards them.
 	LogOutput io.Writer
 }
 
