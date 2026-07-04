@@ -61,10 +61,14 @@ key shows the largest over-allow (see [DESIGN.md](DESIGN.md#choosing-the-key)).
 | `DiscoverInterval` | time.Duration | How often peers are re-discovered |
 | `KeyTTL` | time.Duration | Optional; evict a key after this much idle time (requires `SweepInterval`) |
 | `SweepInterval` | time.Duration | Optional; how often the eviction sweep runs (requires `KeyTTL`) |
-| `LogOutput` | io.Writer | Optional; where memberlist logs go (silent by default) |
+| `LogOutput` | io.Writer | Optional; sink for peerlimit's and memberlist's logs (silent by default) |
 
 Every field is required except `LogOutput` and the `KeyTTL`/`SweepInterval`
 eviction pair, which is opt-in and must be set together or left unset.
+
+peerlimit writes its own diagnostics — failed peer joins at startup and on
+rediscovery — to `LogOutput`, prefixed `[peerlimit]`, alongside memberlist's
+internal logs. Leave `LogOutput` nil to silence both.
 
 ## Discovery
 

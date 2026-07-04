@@ -2,6 +2,8 @@ package peerlimit
 
 import (
 	"context"
+	"io"
+	"log"
 	"sync"
 	"time"
 
@@ -16,9 +18,19 @@ type Limiter struct {
 	config Config
 	store  *store
 	ml     *memberlist.Memberlist
+	logger *log.Logger
 	// cancel stops the background discover and sweep loops.
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+}
+
+// newLogger writes peerlimit's own diagnostics to the same sink memberlist uses.
+// A nil LogOutput discards them, matching memberlist's default.
+func newLogger(out io.Writer) *log.Logger {
+	if out == nil {
+		out = io.Discard
+	}
+	return log.New(out, "[peerlimit] ", log.LstdFlags)
 }
 
 // New creates a Limiter, joins the gossip cluster via conf.Discoverer, and
@@ -29,12 +41,13 @@ func New(ctx context.Context, conf Config) (*Limiter, error) {
 		return nil, err
 	}
 
+	logger := newLogger(conf.LogOutput)
 	s := newStore(conf.Node)
-	ml, err := startGossip(ctx, s, conf)
+	ml, err := startGossip(ctx, s, conf, logger)
 	if err != nil {
 		return nil, err
 	}
-	limiter := &Limiter{config: conf, store: s, ml: ml}
+	limiter := &Limiter{config: conf, store: s, ml: ml, logger: logger}
 
 	loopCtx, cancel := context.WithCancel(ctx)
 	limiter.cancel = cancel
@@ -82,8 +95,9 @@ func (l *Limiter) discoverLoop(ctx context.Context) {
 			seeds, _ := l.config.Discoverer.Discover(cctx)
 			cancel()
 			if len(seeds) > 0 {
-				// TODO: log error?
-				_, _ = l.ml.Join(seeds)
+				if _, err := l.ml.Join(seeds); err != nil {
+					l.logger.Printf("discover: rejoin failed: %v", err)
+				}
 			}
 		}
 	}

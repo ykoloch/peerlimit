@@ -3,6 +3,7 @@ package peerlimit
 import (
 	"context"
 	"io"
+	"log"
 
 	"github.com/hashicorp/memberlist"
 )
@@ -47,7 +48,7 @@ func (d *delegate) MergeRemoteState(buf []byte, _ bool) {
 
 // startGossip configures and starts memberlist for s, then joins the seeds the
 // Discoverer returns.
-func startGossip(ctx context.Context, s *store, conf Config) (*memberlist.Memberlist, error) {
+func startGossip(ctx context.Context, s *store, conf Config, logger *log.Logger) (*memberlist.Memberlist, error) {
 	mlConf := memberlist.DefaultLANConfig()
 	if conf.LogOutput != nil {
 		mlConf.LogOutput = conf.LogOutput
@@ -71,8 +72,9 @@ func startGossip(ctx context.Context, s *store, conf Config) (*memberlist.Member
 	}
 
 	if len(seeds) > 0 {
-		// TODO: error?
-		_, _ = list.Join(seeds)
+		if _, err := list.Join(seeds); err != nil {
+			logger.Printf("startup: initial join failed: %v", err)
+		}
 	}
 
 	return list, nil

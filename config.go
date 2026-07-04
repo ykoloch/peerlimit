@@ -35,7 +35,8 @@ type Config struct {
 	// DiscoverInterval is how often Discoverer is polled for peers. Must be positive.
 	DiscoverInterval time.Duration
 
-	// LogOutput receives memberlist's internal logs. Nil discards them.
+	// LogOutput receives peerlimit's own diagnostics (prefixed [peerlimit]) and
+	// memberlist's internal logs. Nil discards both.
 	LogOutput io.Writer
 }
 
