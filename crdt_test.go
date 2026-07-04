@@ -160,17 +160,20 @@ func TestMerge_CRDT_Associative(t *testing.T) {
 	}
 }
 
+// The CRDT survives a marshal/unmarshal round-trip inside a payload — the only
+// path it takes to the wire now. Uses a multi-key, multi-node fixture so the
+// nested gCounters are exercised, not just the top-level map.
 func TestMarshalUnmarshal_CRDT(t *testing.T) {
-	data, err := propA.marshal()
+	data, err := payload{Crdt: propA}.marshal()
 	if err != nil {
-		t.Fatalf("error marshalling crdt: %v\n", err)
+		t.Fatalf("error marshalling payload: %v\n", err)
 	}
 
-	c, err := unmarshalCRDT(data)
+	got, err := unmarshalPayload(data)
 	if err != nil {
-		t.Fatalf("error unmarshaling crdt: %v\n", err)
+		t.Fatalf("error unmarshaling payload: %v\n", err)
 	}
-	if !reflect.DeepEqual(c, propA) {
-		t.Fatalf("unmarshalling is not correct. want: %v, got: %v\n", propA, c)
+	if !reflect.DeepEqual(got.Crdt, propA) {
+		t.Fatalf("unmarshalling is not correct. want: %v, got: %v\n", propA, got.Crdt)
 	}
 }

@@ -1,9 +1,10 @@
 package peerlimit
 
 import (
-	"encoding/json"
 	"sync"
 	"time"
+
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type (
@@ -11,8 +12,9 @@ type (
 	key    string
 )
 
-// gCounter is an atomic data structure - a grow-only counter that holds,
-// for a single key, how many requests each node has consumed (nodeID -> count).
+// gCounter is a grow-only counter (G-Counter CRDT): for a single key it holds
+// how many requests each node has consumed (nodeID -> count). Counts only ever
+// increase, so merging cell-by-cell with max can never lose consumption.
 type gCounter map[nodeID]float64
 
 // crdt is a Conflict-free Replicated Data Type that maps a key
@@ -34,9 +36,9 @@ func (c crdt) merge(input crdt) {
 	}
 }
 
-// store holds the per-key CRDT plus the local bookkeeping a token-bucket
-// decision needs — baseline for refill, lastSeen for eviction — all guarded by
-// mu.
+// store holds one node's rate-limiter state, all guarded by mu: the replicated
+// crdt (per-key consumption, gossiped) plus two local-only maps — baseline, the
+// token-bucket refill anchor, and lastSeen, the eviction clock.
 type store struct {
 	node     nodeID
 	crdt     crdt
@@ -110,16 +112,37 @@ func (s *store) aggregateLocked(k key) float64 {
 	return result
 }
 
-func (s *store) merge(input crdt) {
+// merge folds a peer's payload into local state: G-Counter cells by max, and
+// lastSeen by max so a key stays alive while active on any node and is evicted
+// only once idle across the cluster. The incoming timestamp is taken as-is,
+// never time.Now() — otherwise a mere mention of a stale key would keep it
+// immortal and eviction would never fire.
+func (s *store) merge(input payload) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.crdt.merge(input)
+	s.crdt.merge(input.Crdt)
+	for k, v := range input.LastSeen {
+		s.lastSeen[k] = maxTime(s.lastSeen[k], v)
+	}
 }
 
+func maxTime(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
+}
+
+// snapshot serialises the current state (counts + lastSeen) into a payload for
+// a peer to merge.
 func (s *store) snapshot() ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.crdt.marshal()
+	pl := payload{
+		Crdt:     s.crdt,
+		LastSeen: s.lastSeen,
+	}
+	return pl.marshal()
 }
 
 // sweep evicts every key idle longer than ttl, dropping it from all local maps.
@@ -137,12 +160,20 @@ func (s *store) sweep(ttl time.Duration) {
 	}
 }
 
-func (c crdt) marshal() ([]byte, error) {
-	return json.Marshal(c)
+// payload is the gossip wire format: the G-Counter counts and the lastSeen
+// timestamps, the two pieces of state peers must exchange. Fields are exported
+// so msgpack can encode them.
+type payload struct {
+	Crdt     crdt              `msgpack:"c"`
+	LastSeen map[key]time.Time `msgpack:"l"`
 }
 
-func unmarshalCRDT(data []byte) (crdt, error) {
-	c := make(crdt)
-	err := json.Unmarshal(data, &c)
-	return c, err
+func (p payload) marshal() ([]byte, error) {
+	return msgpack.Marshal(p)
+}
+
+func unmarshalPayload(data []byte) (payload, error) {
+	p := new(payload)
+	err := msgpack.Unmarshal(data, p)
+	return *p, err
 }

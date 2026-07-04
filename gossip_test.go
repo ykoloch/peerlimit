@@ -60,14 +60,14 @@ func TestGossip_Converges(t *testing.T) {
 	defer limB.Close()
 }
 
-// A valid remote snapshot is merged into the local store: the incoming node's
+// A valid remote payload is merged into the local store: the incoming node's
 // cell is added on top of the local one.
 func TestDelegate_MergeRemoteState(t *testing.T) {
 	s := newStore(Node1)
 	s.increment(userID) // local Node1:1
 	d := &delegate{store: s}
 
-	incoming := crdt{userID: gCounter{Node2: 5}}
+	incoming := payload{Crdt: crdt{userID: gCounter{Node2: 5}}}
 	buf, err := incoming.marshal()
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
@@ -87,7 +87,7 @@ func TestDelegate_MergeRemoteState_BadDataIgnored(t *testing.T) {
 	s.increment(userID)
 	d := &delegate{store: s}
 
-	d.MergeRemoteState([]byte("{ not valid json"), false)
+	d.MergeRemoteState([]byte("not a valid msgpack frame"), false)
 
 	if got := s.aggregate(userID); got != 1 {
 		t.Fatalf("bad payload must leave state intact, want 1 got %v", got)
@@ -103,11 +103,39 @@ func TestDelegate_LocalState_RoundTrips(t *testing.T) {
 	d := &delegate{store: s}
 
 	buf := d.LocalState(false)
-	got, err := unmarshalCRDT(buf)
+	got, err := unmarshalPayload(buf)
 	if err != nil {
 		t.Fatalf("local state should unmarshal, got %v", err)
 	}
-	if got[userID][Node1] != 2 {
-		t.Fatalf("round-trip lost data: %v", got)
+	if got.Crdt[userID][Node1] != 2 {
+		t.Fatalf("round-trip lost data: %v", got.Crdt)
+	}
+}
+
+// Both halves of the payload survive the wire: the G-Counter cells and the
+// lastSeen timestamps. lastSeen must ride along, otherwise a gossip-only key
+// never enters a peer's eviction timer. Times are compared with Equal, not ==,
+// because marshalling strips the monotonic reading and normalises to UTC.
+func TestPayload_RoundTrips(t *testing.T) {
+	ts := time.Now()
+	in := payload{
+		Crdt:     crdt{userID: gCounter{Node1: 2}},
+		LastSeen: map[key]time.Time{userID: ts},
+	}
+
+	buf, err := in.marshal()
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	out, err := unmarshalPayload(buf)
+	if err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if out.Crdt[userID][Node1] != 2 {
+		t.Fatalf("counts lost on round-trip: %v", out.Crdt)
+	}
+	if !out.LastSeen[userID].Equal(ts) {
+		t.Fatalf("lastSeen lost on round-trip: want %v got %v", ts, out.LastSeen[userID])
 	}
 }

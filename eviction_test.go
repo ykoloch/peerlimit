@@ -117,6 +117,67 @@ func TestStore_SweepRace(t *testing.T) {
 	wg.Wait()
 }
 
+// The headline fix: a key learned only through gossip — never a local allow —
+// still gets evicted. merge seeds lastSeen from the incoming timestamp, so the
+// key enters the sweep's view. Before this, gossip-only keys had no lastSeen
+// entry, sweep never saw them, and they leaked forever on observer nodes.
+// A stale incoming timestamp also proves merge stores what it received rather
+// than time.Now(): had it stamped now, the key would survive this sweep.
+func TestStore_MergeEvictsGossipOnlyKey(t *testing.T) {
+	s := newStore(Node1)
+	s.merge(payload{
+		Crdt:     crdt{userID: gCounter{Node2: 5}},
+		LastSeen: map[key]time.Time{userID: time.Now().Add(-time.Hour)},
+	})
+
+	s.sweep(time.Minute)
+
+	if _, ok := s.crdt[userID]; ok {
+		t.Fatalf("gossip-only stale key should be evicted from crdt")
+	}
+	if _, ok := s.lastSeen[userID]; ok {
+		t.Fatalf("gossip-only stale key should be evicted from lastSeen")
+	}
+}
+
+// The complement: a gossip-only key whose incoming timestamp is fresh must
+// survive the sweep. Guards against merge nuking live keys observed from peers.
+func TestStore_MergeKeepsFreshGossipKey(t *testing.T) {
+	s := newStore(Node1)
+	s.merge(payload{
+		Crdt:     crdt{userID: gCounter{Node2: 5}},
+		LastSeen: map[key]time.Time{userID: time.Now()},
+	})
+
+	s.sweep(time.Minute)
+
+	if _, ok := s.crdt[userID]; !ok {
+		t.Fatalf("fresh gossip-only key must survive the sweep")
+	}
+}
+
+// lastSeen is a max-register: merge advances it to a newer incoming timestamp
+// but never rewinds it to an older one. Both directions are checked because a
+// flipped comparison in maxTime would only surface in one of them.
+func TestStore_MergeTakesNewerLastSeen(t *testing.T) {
+	s := newStore(Node1)
+	base := time.Now()
+	s.lastSeen[userID] = base
+
+	// older incoming must not move it back
+	s.merge(payload{LastSeen: map[key]time.Time{userID: base.Add(-time.Minute)}})
+	if !s.lastSeen[userID].Equal(base) {
+		t.Fatalf("older incoming overwrote newer lastSeen: got %v want %v", s.lastSeen[userID], base)
+	}
+
+	// newer incoming must advance it
+	newer := base.Add(time.Minute)
+	s.merge(payload{LastSeen: map[key]time.Time{userID: newer}})
+	if !s.lastSeen[userID].Equal(newer) {
+		t.Fatalf("newer incoming did not advance lastSeen: got %v want %v", s.lastSeen[userID], newer)
+	}
+}
+
 // present reports whether the store still tracks k, reading the crdt map under
 // the store lock so the check never races the background sweeper.
 func present(s *store, k key) bool {

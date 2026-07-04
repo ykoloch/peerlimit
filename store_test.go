@@ -29,7 +29,7 @@ func TestStore_Increment(t *testing.T) {
 
 func TestStore_Aggregate(t *testing.T) {
 	s := newStore(Node1)
-	s.merge(crdt{userID: gCounter{Node2: 5}})
+	s.merge(payload{Crdt: crdt{userID: gCounter{Node2: 5}}})
 	s.increment(userID)
 	aggr := s.aggregate(userID)
 	if aggr != 6 {
