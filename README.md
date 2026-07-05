@@ -1,5 +1,7 @@
 # peerlimit
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/ykoloch/peerlimit.svg)](https://pkg.go.dev/github.com/ykoloch/peerlimit)
+
 peerlimit is a distributed rate limiter for Go, implemented as an embedded
 library rather than a standalone service. Each replica decides immediately from
 its own in-memory state — no network round trip — and the replicas keep that
